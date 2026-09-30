@@ -29,9 +29,16 @@ def draw_marks_on_image(image_path, output_path, marks):
     Draw red marks on the image based on coordinates.
     """
     img = cv2.imread(image_path)
+    h, w = img.shape[:2]
     
     for mark in marks:
-        x1, y1, x2, y2 = mark['bbox']
+        x1_norm, y1_norm, x2_norm, y2_norm = mark['bbox']
+        # Scale from 1000x1000 grid to actual image size
+        x1 = int(x1_norm * w / 1000.0)
+        y1 = int(y1_norm * h / 1000.0)
+        x2 = int(x2_norm * w / 1000.0)
+        y2 = int(y2_norm * h / 1000.0)
+        
         if mark['type'] == 'circle':
             cv2.ellipse(img, (int((x1+x2)/2), int((y1+y2)/2)), (int((x2-x1)/2), int((y2-y1)/2)), 0, 0, 360, (0, 0, 255), 3)
         elif mark['type'] == 'tick':

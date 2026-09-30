@@ -52,7 +52,7 @@ def evaluate_answer_sheet(api_key, answer_images, question_paper_text, marking_p
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model='gemini-3.8-flash',
+                model='gemini-3.5-flash',
                 contents=contents,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",

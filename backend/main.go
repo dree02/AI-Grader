@@ -65,11 +65,12 @@ func handleGrade(w http.ResponseWriter, r *http.Request) {
 	question := r.FormValue("question")
 	rules := r.FormValue("rules")
 
-	fmt.Printf("Received request. PDF: %s, Question len: %d\n", pdfPath, len(question))
+	fmt.Printf("Received request. PDF: %s, Question len: %d, Rules len: %d\n", pdfPath, len(question), len(rules))
 
-	// 5. Call Python script
-	// Assuming python environment is set up and ai_grader is in the parent dir
-	cmd := exec.Command("python3", "../ai_grader/pdf_processor.py", pdfPath)
+	// 5. Call Python script using venv
+	pythonPath := filepath.Join("..", "ai_grader", "venv", "bin", "python")
+	scriptPath := filepath.Join("..", "ai_grader", "pdf_processor.py")
+	cmd := exec.Command(pythonPath, scriptPath, pdfPath, question, rules)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Python Error: %s\n", string(output))
