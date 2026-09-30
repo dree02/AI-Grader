@@ -40,7 +40,7 @@ def evaluate_answer_sheet(api_key, answer_images, question_paper_text, marking_p
     
     print("Asking Gemini to grade...")
     response = client.models.generate_content(
-        model='gemini-2.5-pro',
+        model='gemini-1.5-pro',
         contents=contents,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
