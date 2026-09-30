@@ -1,0 +1,5 @@
+pdf2image
+PyMuPDF
+pillow
+google-genai
+opencv-python
