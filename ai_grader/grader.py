@@ -3,10 +3,13 @@ import json
 from google import genai
 from google.genai import types
 
-def evaluate_answer_sheet(api_key, answer_images, question_paper_text, marking_pointers):
+def evaluate_answer_sheet(api_key, answer_images, question_paper_text, marking_pointers, q_images=None):
     """
     Use Gemini AI to grade the answer sheet.
     """
+    if q_images is None:
+        q_images = []
+        
     client = genai.Client(api_key=api_key)
     
     prompt = f"""
@@ -33,6 +36,10 @@ def evaluate_answer_sheet(api_key, answer_images, question_paper_text, marking_p
     print("Uploading images to Gemini...")
     files = []
     for img_path in answer_images:
+        f = client.files.upload(file=img_path)
+        files.append(f)
+        
+    for img_path in q_images:
         f = client.files.upload(file=img_path)
         files.append(f)
         
