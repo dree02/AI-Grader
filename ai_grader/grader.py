@@ -38,15 +38,27 @@ def evaluate_answer_sheet(api_key, answer_images, question_paper_text, marking_p
         
     contents = [prompt] + files
     
+    import time
+    from google.genai import errors
     print("Asking Gemini to grade...")
-    response = client.models.generate_content(
-        model='gemini-3.5-flash',
-        contents=contents,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            temperature=0.1
-        )
-    )
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model='gemini-3.8-flash',
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.1
+                )
+            )
+            break
+        except errors.ServerError as e:
+            if "503" in str(e) and attempt < max_retries - 1:
+                print(f"503 Server Busy. Retrying in 10 seconds... (Attempt {attempt+1}/{max_retries})")
+                time.sleep(10)
+            else:
+                raise e
     
     try:
         result = json.loads(response.text)
