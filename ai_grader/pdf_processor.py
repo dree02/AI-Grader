@@ -50,4 +50,12 @@ def draw_marks_on_image(image_path, output_path, marks):
     return output_path
 
 if __name__ == "__main__":
-    print("PDF processor ready.")
+    import sys
+    if len(sys.argv) > 1:
+        pdf_file = sys.argv[1]
+        out_dir = pdf_file + "_images"
+        print(f"Processing PDF: {pdf_file}")
+        images = pdf_to_images(pdf_file, out_dir)
+        print(f"Images saved: {images}")
+    else:
+        print("PDF processor ready. Provide PDF path.")
