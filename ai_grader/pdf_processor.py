@@ -1,4 +1,4 @@
-import fitz  # PyMuPDF
+import pymupdf
 from PIL import Image
 import os
 
@@ -6,7 +6,7 @@ def pdf_to_images(pdf_path, output_dir):
     """
     Convert a PDF file to a list of images.
     """
-    doc = fitz.open(pdf_path)
+    doc = pymupdf.open(pdf_path)
     image_paths = []
     
     if not os.path.exists(output_dir):
