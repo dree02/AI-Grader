@@ -12,9 +12,7 @@ import (
 
 func main() {
 	http.HandleFunc("/grade", handleGrade)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "AI Grader Server is running. Send POST to /grade")
-	})
+	http.Handle("/", http.FileServer(http.Dir("static")))
 
 	fmt.Println("Server listening on :8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -61,11 +59,24 @@ func handleGrade(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 4. Get other form values (question, rules)
+	// 4. Get other form values (question text or question pdf, rules)
 	question := r.FormValue("question")
+	
+	qFile, qHandler, qErr := r.FormFile("question_pdf")
+	if qErr == nil {
+		defer qFile.Close()
+		qPdfPath := filepath.Join(tempDir, qHandler.Filename)
+		qDst, err := os.Create(qPdfPath)
+		if err == nil {
+			defer qDst.Close()
+			io.Copy(qDst, qFile)
+			question = qPdfPath // Pass the PDF path instead of text
+		}
+	}
+
 	rules := r.FormValue("rules")
 
-	fmt.Printf("Received request. PDF: %s, Question len: %d, Rules len: %d\n", pdfPath, len(question), len(rules))
+	fmt.Printf("Received request. PDF: %s, Question: %s, Rules len: %d\n", pdfPath, question, len(rules))
 
 	// 5. Call Python script using venv
 	pythonPath := filepath.Join("..", "ai_grader", "venv", "bin", "python")

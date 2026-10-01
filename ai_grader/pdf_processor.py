@@ -68,10 +68,15 @@ if __name__ == "__main__":
         question_input = sys.argv[2]
         rules = sys.argv[3]
         
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            print("Error: GEMINI_API_KEY not set")
-            sys.exit(1)
+        api_keys_str = os.environ.get("GEMINI_API_KEYS")
+        if not api_keys_str:
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                print("Error: GEMINI_API_KEYS or GEMINI_API_KEY not set")
+                sys.exit(1)
+            api_keys = [api_key]
+        else:
+            api_keys = [k.strip() for k in api_keys_str.split(',')]
             
         out_dir = pdf_file + "_images"
         print(f"Processing Answer PDF: {pdf_file}")
@@ -87,7 +92,7 @@ if __name__ == "__main__":
         
         print("Calling Gemini...")
         # We need to pass question images to evaluate_answer_sheet. Let's update that next.
-        result = evaluate_answer_sheet(api_key, images, question_paper, rules, q_images)
+        result = evaluate_answer_sheet(api_keys, images, question_paper, rules, q_images)
         
         print("Grading Result:", json.dumps(result, indent=2))
         

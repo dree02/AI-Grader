@@ -19,9 +19,9 @@ Make AI tool to check handwritten answer sheets. Input: PDF answer sheet, PDF qu
 - [x] Test with real Probability test papers.
 
 ## Next Steps (For Next Session)
-- [ ] Connect Go backend server fully (right now it expects text question, we need to update it to accept Question PDF upload as well!).
-- [ ] Make a simple Web UI (HTML/CSS) so user can drag-and-drop PDFs instead of using `curl` or terminal.
-- [ ] Improve AI prompt to give more detailed step-by-step mark breakdown.
+- [x] Connect Go backend server fully (right now it expects text question, we need to update it to accept Question PDF upload as well!).
+- [x] Make a simple Web UI (HTML/CSS) so user can drag-and-drop PDFs instead of using `curl` or terminal.
+- [x] Improve AI prompt to give more detailed step-by-step mark breakdown.
 
 ## How to Resume
 Tell AI: "Read `PROJECT_PLAN.md` and continue from Next Steps."
