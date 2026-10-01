@@ -20,6 +20,12 @@ def pdf_to_images(pdf_path, output_dir):
         
         output_path = os.path.join(output_dir, f"page_{page_num}.png")
         pix.save(output_path)
+        
+        img = Image.open(output_path)
+        if img.width > img.height:
+            img = img.rotate(270, expand=True)
+            img.save(output_path)
+            
         image_paths.append(output_path)
         
     return image_paths
