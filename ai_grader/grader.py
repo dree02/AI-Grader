@@ -3,15 +3,13 @@ import json
 from google import genai
 from google.genai import types
 
-def evaluate_answer_sheet(api_key, answer_images, question_paper_text, marking_pointers, q_images=None):
+def evaluate_answer_sheet(api_keys, answer_images, question_paper_text, marking_pointers, q_images=None):
     """
     Use Gemini AI to grade the answer sheet.
     """
     if q_images is None:
         q_images = []
         
-    client = genai.Client(api_key=api_key)
-    
     prompt = f"""
     You are an expert human teacher grading an exam.
     Question Paper:
@@ -20,11 +18,13 @@ def evaluate_answer_sheet(api_key, answer_images, question_paper_text, marking_p
     Marking Pointers (Rubric):
     {marking_pointers}
     
-    Please grade the attached answer sheet images.
+    Please grade the attached answer sheet images meticulously step-by-step.
+    Provide a detailed mark breakdown for each question. Evaluate every step the student took, assigning partial marks according to the rubric.
+
     Output your response in JSON format.
     The JSON must contain:
     1. 'total_score': integer
-    2. 'feedback': string (overall feedback)
+    2. 'feedback': string (detailed step-by-step feedback)
     3. 'marks': a list of objects representing where to draw marks on the image.
        Each mark object must have:
        - 'page_index': integer (0-indexed, which image this mark belongs to)
@@ -33,46 +33,68 @@ def evaluate_answer_sheet(api_key, answer_images, question_paper_text, marking_p
        - 'text': string (only if type is 'text', e.g., '+2' or 'wrong formula')
     """
     
-    print("Uploading images to Gemini...")
-    files = []
-    for img_path in answer_images:
-        f = client.files.upload(file=img_path)
-        files.append(f)
-        
-    for img_path in q_images:
-        f = client.files.upload(file=img_path)
-        files.append(f)
-        
-    contents = [prompt] + files
-    
     import time
     from google.genai import errors
-    print("Asking Gemini to grade...")
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model='gemini-3.8-flash',
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.1
-                )
-            )
-            break
-        except errors.ServerError as e:
-            if "503" in str(e) and attempt < max_retries - 1:
-                print(f"503 Server Busy. Retrying in 10 seconds... (Attempt {attempt+1}/{max_retries})")
-                time.sleep(10)
-            else:
-                raise e
     
-    try:
-        result = json.loads(response.text)
-        return result
-    except Exception as e:
-        print("Error parsing JSON:", e)
-        return {"error": str(e), "raw": response.text}
+    for key_index, current_api_key in enumerate(api_keys):
+        print(f"Trying API Key {key_index + 1}/{len(api_keys)}...")
+        client = genai.Client(api_key=current_api_key)
+        
+        print("Uploading images to Gemini...")
+        files = []
+        for img_path in answer_images:
+            f = client.files.upload(file=img_path)
+            files.append(f)
+            
+        for img_path in q_images:
+            f = client.files.upload(file=img_path)
+            files.append(f)
+            
+        contents = [prompt] + files
+        
+        print("Asking Gemini to grade...")
+        max_retries = 3
+        success = False
+        response = None
+        base_wait = 10
+        
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model='gemini-3.5-flash',
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.1
+                    )
+                )
+                success = True
+                break
+            except errors.ServerError as e:
+                if "503" in str(e) and attempt < max_retries - 1:
+                    wait_time = base_wait * (2 ** attempt)
+                    print(f"503 Server Busy. Retrying in {wait_time} seconds... (Attempt {attempt+1}/{max_retries})")
+                    time.sleep(wait_time)
+                else:
+                    print(f"ServerError: {e}. Switching to next key...")
+                    break # Switch to next API key
+            except errors.ClientError as e:
+                if "429" in str(e):
+                    print(f"429 Too Many Requests on key {key_index+1}. Switching to next key...")
+                    break # Switch to next API key
+                else:
+                    print(f"ClientError: {e}. Switching to next key...")
+                    break # Switch to next API key
+        
+        if success and response:
+            try:
+                result = json.loads(response.text)
+                return result
+            except Exception as e:
+                print("Error parsing JSON:", e)
+                return {"error": str(e), "raw": response.text}
+                
+    return {"error": "All API keys failed or exhausted due to 429s."}
 
 if __name__ == "__main__":
     print("Grader AI ready. Me wait for API key and images.")

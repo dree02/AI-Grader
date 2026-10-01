@@ -29,9 +29,16 @@ def draw_marks_on_image(image_path, output_path, marks):
     Draw red marks on the image based on coordinates.
     """
     img = cv2.imread(image_path)
+    h, w = img.shape[:2]
     
     for mark in marks:
-        x1, y1, x2, y2 = mark['bbox']
+        x1_norm, y1_norm, x2_norm, y2_norm = mark['bbox']
+        # Scale from 1000x1000 grid to actual image size
+        x1 = int(x1_norm * w / 1000.0)
+        y1 = int(y1_norm * h / 1000.0)
+        x2 = int(x2_norm * w / 1000.0)
+        y2 = int(y2_norm * h / 1000.0)
+        
         if mark['type'] == 'circle':
             cv2.ellipse(img, (int((x1+x2)/2), int((y1+y2)/2)), (int((x2-x1)/2), int((y2-y1)/2)), 0, 0, 360, (0, 0, 255), 3)
         elif mark['type'] == 'tick':
@@ -61,10 +68,15 @@ if __name__ == "__main__":
         question_input = sys.argv[2]
         rules = sys.argv[3]
         
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            print("Error: GEMINI_API_KEY not set")
-            sys.exit(1)
+        api_keys_str = os.environ.get("GEMINI_API_KEYS")
+        if not api_keys_str:
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                print("Error: GEMINI_API_KEYS or GEMINI_API_KEY not set")
+                sys.exit(1)
+            api_keys = [api_key]
+        else:
+            api_keys = [k.strip() for k in api_keys_str.split(',')]
             
         out_dir = pdf_file + "_images"
         print(f"Processing Answer PDF: {pdf_file}")
@@ -80,7 +92,7 @@ if __name__ == "__main__":
         
         print("Calling Gemini...")
         # We need to pass question images to evaluate_answer_sheet. Let's update that next.
-        result = evaluate_answer_sheet(api_key, images, question_paper, rules, q_images)
+        result = evaluate_answer_sheet(api_keys, images, question_paper, rules, q_images)
         
         print("Grading Result:", json.dumps(result, indent=2))
         
