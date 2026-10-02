@@ -146,7 +146,14 @@ if __name__ == "__main__":
                 draw_marks_on_image(img_path, out_img, page_marks)
                 annotated_images.append(out_img)
                 
-            final_pdf = pdf_file + "_graded.pdf"
+            student_name = result.get("student_name", "Unknown_Student")
+            import re
+            safe_name = re.sub(r'[^a-zA-Z0-9_\- ]', '', student_name).strip()
+            if not safe_name:
+                safe_name = "Unknown_Student"
+                
+            base_dir = os.path.dirname(pdf_file)
+            final_pdf = os.path.join(base_dir, f"{safe_name}_graded.pdf")
             images_to_pdf(annotated_images, final_pdf)
             print(f"DONE. Final PDF: {final_pdf}")
         else:

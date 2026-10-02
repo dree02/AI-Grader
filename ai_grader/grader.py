@@ -29,8 +29,9 @@ def evaluate_answer_sheet(api_keys, answer_images, question_paper_text, marking_
 
     Output your response in JSON format.
     The JSON must contain:
-    1. 'total_score': integer
-    2. 'feedback': string (detailed step-by-step feedback)
+    1. 'student_name': string (Extract the full name, including surname, written by the student on the first page. If no name is found, use "Unknown_Student").
+    2. 'total_score': integer
+    3. 'feedback': string (detailed step-by-step feedback)
     3. 'marks': a list of objects representing where to draw marks on the image.
        Each mark object must have:
        - 'page_index': integer (0-indexed, which image this mark belongs to)
