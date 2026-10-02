@@ -21,6 +21,12 @@ def evaluate_answer_sheet(api_keys, answer_images, question_paper_text, marking_
     Please grade the attached answer sheet images meticulously step-by-step.
     Provide a detailed mark breakdown for each question. Evaluate every step the student took, assigning partial marks according to the rubric.
 
+    CRITICAL INSTRUCTIONS FOR MISTAKES & MARKS:
+    1. Identify mistakes clearly in the feedback.
+    2. Add a 'circle' mark to encircle the exact mistake on the image.
+    3. Add a 'text' mark near the mistake to write the correct explanation and solution.
+    4. For EVERY question attempted by the student, add a 'text' mark next to the question number on the image writing the marks awarded (e.g., "Q1: 2/5 marks").
+
     Output your response in JSON format.
     The JSON must contain:
     1. 'total_score': integer
@@ -29,8 +35,8 @@ def evaluate_answer_sheet(api_keys, answer_images, question_paper_text, marking_
        Each mark object must have:
        - 'page_index': integer (0-indexed, which image this mark belongs to)
        - 'type': string (one of 'tick', 'cross', 'circle', 'text')
-       - 'bbox': [x1, y1, x2, y2] (approximate coordinates where to draw on a 1000x1000 scaled grid, we will scale back)
-       - 'text': string (only if type is 'text', e.g., '+2' or 'wrong formula')
+       - 'bbox': [x1, y1, x2, y2] (approximate coordinates where to draw on a 1000x1000 scaled grid, 0,0 is top-left)
+       - 'text': string (only if type is 'text', e.g. correct solution/explanation)
     """
     
     import time
@@ -53,12 +59,12 @@ def evaluate_answer_sheet(api_keys, answer_images, question_paper_text, marking_
         contents = [prompt] + files
         
         print("Asking Gemini to grade...")
-        max_retries = 3
         success = False
         response = None
         base_wait = 10
+        attempt = 0
         
-        for attempt in range(max_retries):
+        while not success:
             try:
                 response = client.models.generate_content(
                     model='gemini-3.5-flash',
@@ -71,10 +77,11 @@ def evaluate_answer_sheet(api_keys, answer_images, question_paper_text, marking_
                 success = True
                 break
             except errors.ServerError as e:
-                if "503" in str(e) and attempt < max_retries - 1:
-                    wait_time = base_wait * (2 ** attempt)
-                    print(f"503 Server Busy. Retrying in {wait_time} seconds... (Attempt {attempt+1}/{max_retries})")
+                if "503" in str(e):
+                    wait_time = 10
+                    print(f"503 Server Busy. Retrying in {wait_time} seconds... (Attempt {attempt+1})")
                     time.sleep(wait_time)
+                    attempt += 1
                 else:
                     print(f"ServerError: {e}. Switching to next key...")
                     break # Switch to next API key
