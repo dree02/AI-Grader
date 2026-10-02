@@ -21,11 +21,11 @@ def evaluate_answer_sheet(api_keys, answer_images, question_paper_text, marking_
     Please grade the attached answer sheet images meticulously step-by-step.
     Provide a detailed mark breakdown for each question. Evaluate every step the student took, assigning partial marks according to the rubric.
 
-    CRITICAL INSTRUCTIONS FOR MISTAKES:
-    If you find a mistake the student made, you MUST:
-    1. Identify it clearly in the feedback.
+    CRITICAL INSTRUCTIONS FOR MISTAKES & MARKS:
+    1. Identify mistakes clearly in the feedback.
     2. Add a 'circle' mark to encircle the exact mistake on the image.
-    3. Add a 'text' mark near the mistake to write the correct explanation and solution from that part so the student understands where they went wrong.
+    3. Add a 'text' mark near the mistake to write the correct explanation and solution.
+    4. For EVERY question attempted by the student, add a 'text' mark next to the question number on the image writing the marks awarded (e.g., "Q1: 2/5 marks").
 
     Output your response in JSON format.
     The JSON must contain:
@@ -78,7 +78,7 @@ def evaluate_answer_sheet(api_keys, answer_images, question_paper_text, marking_
                 break
             except errors.ServerError as e:
                 if "503" in str(e):
-                    wait_time = base_wait * (2 ** min(attempt, 6)) # Cap wait time at 640 seconds max
+                    wait_time = 10
                     print(f"503 Server Busy. Retrying in {wait_time} seconds... (Attempt {attempt+1})")
                     time.sleep(wait_time)
                     attempt += 1

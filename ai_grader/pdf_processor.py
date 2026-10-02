@@ -4,6 +4,9 @@ import os
 import cv2
 import json
 
+from google import genai
+import time
+
 def pdf_to_images(pdf_path, output_dir):
     """
     Convert a PDF file to a list of images.
@@ -17,15 +20,8 @@ def pdf_to_images(pdf_path, output_dir):
     for page_num in range(len(doc)):
         page = doc.load_page(page_num)
         pix = page.get_pixmap(dpi=200)
-        
         output_path = os.path.join(output_dir, f"page_{page_num}.png")
         pix.save(output_path)
-        
-        img = Image.open(output_path)
-        if img.width > img.height:
-            img = img.rotate(270, expand=True)
-            img.save(output_path)
-            
         image_paths.append(output_path)
         
     return image_paths
@@ -46,15 +42,48 @@ def draw_marks_on_image(image_path, output_path, marks):
         y2 = int(y2_norm * h / 1000.0)
         
         if mark['type'] == 'circle':
-            cv2.ellipse(img, (int((x1+x2)/2), int((y1+y2)/2)), (int((x2-x1)/2), int((y2-y1)/2)), 0, 0, 360, (0, 0, 255), 3)
+            # Add padding so circle doesn't overlap text exactly
+            cv2.ellipse(img, (int((x1+x2)/2), int((y1+y2)/2)), (int((x2-x1)/2)+10, int((y2-y1)/2)+10), 0, 0, 360, (0, 0, 255), 3)
         elif mark['type'] == 'tick':
-            cv2.line(img, (x1, int((y1+y2)/2)), (int((x1+x2)/2), y2), (0, 0, 255), 3)
-            cv2.line(img, (int((x1+x2)/2), y2), (x2, y1), (0, 0, 255), 3)
+            cx, cy = int((x1+x2)/2), int((y1+y2)/2)
+            cv2.line(img, (cx-30, cy), (cx, cy+30), (0, 0, 255), 5)
+            cv2.line(img, (cx, cy+30), (cx+40, cy-40), (0, 0, 255), 5)
         elif mark['type'] == 'cross':
-            cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 3)
-            cv2.line(img, (x2, y1), (x1, y2), (0, 0, 255), 3)
+            cx, cy = int((x1+x2)/2), int((y1+y2)/2)
+            cv2.line(img, (cx-30, cy-30), (cx+30, cy+30), (0, 0, 255), 5)
+            cv2.line(img, (cx+30, cy-30), (cx-30, cy+30), (0, 0, 255), 5)
         elif mark['type'] == 'text':
-            cv2.putText(img, mark.get('text', ''), (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            text = mark.get('text', '')
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.8
+            thickness = 2
+            
+            if x1 < w / 2:
+                max_width = max(int(w / 2) - x1 - 10, 200)
+            else:
+                max_width = max(w - x1 - 10, 200)
+                
+            words = text.split()
+            lines = []
+            curr_line = []
+            for word in words:
+                curr_line.append(word)
+                text_size = cv2.getTextSize(" ".join(curr_line), font, font_scale, thickness)[0]
+                if text_size[0] > max_width and len(curr_line) > 1:
+                    curr_line.pop()
+                    lines.append(" ".join(curr_line))
+                    curr_line = [word]
+            if curr_line:
+                lines.append(" ".join(curr_line))
+            
+            y_offset = y2 + 30
+            total_text_height = len(lines) * 35
+            if y_offset + total_text_height > h:
+                y_offset = max(30, y1 - total_text_height - 10)
+                
+            for line in lines:
+                cv2.putText(img, line, (x1, y_offset), font, font_scale, (0, 0, 255), thickness)
+                y_offset += 35
             
     cv2.imwrite(output_path, img)
     return output_path
@@ -103,6 +132,13 @@ if __name__ == "__main__":
         print("Grading Result:", json.dumps(result, indent=2))
         
         if "marks" in result:
+            total_score = result.get("total_score", "?")
+            result["marks"].append({
+                "page_index": 0,
+                "type": "text",
+                "bbox": [50, 50, 300, 100],
+                "text": f"FINAL MARKS: {total_score} / 28"
+            })
             annotated_images = []
             for i, img_path in enumerate(images):
                 page_marks = [m for m in result["marks"] if m.get("page_index") == i]
