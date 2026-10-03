@@ -1,3 +1,29 @@
+
+def find_empty_space_1000(img_path):
+    import cv2
+    import numpy as np
+    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        return (50, 50)
+    H, W = img.shape
+    target_w_ratio = 0.35
+    target_h_ratio = 0.08
+    box_w = int(W * target_w_ratio)
+    box_h = int(H * target_h_ratio)
+    _, binary = cv2.threshold(img, 230, 1, cv2.THRESH_BINARY_INV)
+    integral = cv2.integral(binary)
+    best_x, best_y = 50, 50
+    min_ink = float('inf')
+    step = 20
+    # ONLY search the absolute top 12% of the page
+    for y in range(0, int(H * 0.12) - box_h, step):
+        # Start x at 5% to avoid the physical dark edge of the scanned paper
+        for x in range(int(W * 0.05), W - box_w, step):
+            ink = integral[y+box_h, x+box_w] - integral[y, x+box_w] - integral[y+box_h, x] + integral[y, x]
+            if ink < min_ink:
+                min_ink = ink
+                best_x, best_y = x, y
+    return int(best_x * 1000 / W), int(best_y * 1000 / H)
 import pymupdf
 from PIL import Image
 import os
@@ -133,12 +159,14 @@ if __name__ == "__main__":
         
         if "marks" in result:
             total_score = result.get("total_score", "?")
-            result["marks"].append({
-                "page_index": 0,
-                "type": "text",
-                "bbox": [50, 50, 300, 100],
-                "text": f"FINAL MARKS: {total_score} / 28"
-            })
+            if images:
+                best_x, best_y = find_empty_space_1000(images[0])
+                result["marks"].append({
+                    "page_index": 0,
+                    "type": "text",
+                    "bbox": [best_x, best_y, best_x + 350, best_y + 80],
+                    "text": f"FINAL MARKS: {total_score} / 28"
+                })
             annotated_images = []
             for i, img_path in enumerate(images):
                 page_marks = [m for m in result["marks"] if m.get("page_index") == i]
@@ -146,7 +174,14 @@ if __name__ == "__main__":
                 draw_marks_on_image(img_path, out_img, page_marks)
                 annotated_images.append(out_img)
                 
-            final_pdf = pdf_file + "_graded.pdf"
+            student_name = result.get("student_name", "Unknown_Student")
+            import re
+            safe_name = re.sub(r'[^a-zA-Z0-9_\- ]', '', student_name).strip()
+            if not safe_name:
+                safe_name = "Unknown_Student"
+                
+            base_dir = os.path.dirname(pdf_file)
+            final_pdf = os.path.join(base_dir, f"{safe_name}_graded.pdf")
             images_to_pdf(annotated_images, final_pdf)
             print(f"DONE. Final PDF: {final_pdf}")
         else:
