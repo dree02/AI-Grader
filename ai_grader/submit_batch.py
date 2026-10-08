@@ -32,16 +32,18 @@ def main():
     Please refer to the uploaded Question Paper images.
     Here are the grading rules and rubric:
     {rules}
-    
+
     Please grade the attached answer sheet images meticulously step-by-step.
     Provide a detailed mark breakdown for each question. Evaluate every step the student took, assigning partial marks according to the rubric.
 
     CRITICAL INSTRUCTIONS FOR MISTAKES & MARKS:
     1. Identify mistakes clearly in the feedback.
-    2. Add a 'circle' mark to encircle the exact mistake on the image. BE EXTREMELY PRECISE with your bounding boxes (bbox). The bbox [x1, y1, x2, y2] is on a 0-1000 scale. Do not make circles huge.
-    3. Add a 'text' mark near the mistake to write the correct explanation and solution.
-    4. For EVERY question attempted by the student, add a 'text' mark exactly NEXT TO the handwritten question number on the image writing the marks awarded (e.g., "Q1: 2/5 marks"). Find where the student wrote "Q1" or "Ans 1" and place it near there. Do not put it randomly.
-    5. Double-check your coordinates so marks do not overlap the student's writing incorrectly.
+    2. CIRCLES: Add a 'circle' mark to encircle the exact mistake. BE EXTREMELY PRECISE with your bounding boxes (bbox). Circle the actual handwritten mistake, do NOT circle empty space. Do not make circles huge.
+    3. MISSING WORK: If a step or answer is incomplete/missing, DO NOT draw a circle in empty space. Only use circles for written errors. For missing work, just place a 'text' mark explaining what is missing.
+    4. TICKS & CROSSES: For 'tick' and 'cross' marks, make the bounding box small and tight (e.g., width and height of 30-40 units on the 1000x1000 scale). Place them exactly at the end of the specific math line.
+    5. QUESTION NUMBERS: For EVERY question attempted, add a 'text' mark writing the marks awarded (e.g., "Q1: 2/5 marks"). Place this text strictly BELOW the handwritten question number, so it stays near the question but NEVER overlaps the student's actual handwritten answer.
+    6. SHORT TEXT: Keep 'text' explanations VERY SHORT (maximum 5-7 words per text mark). If you need to write a longer explanation, break it into multiple separate 'text' objects stacked vertically (increase the Y-coordinate by 30 for each new line) to create a neat paragraph.
+    7. WHITESPACE: Always place 'text' marks in empty white space so they do not overlap the student's handwriting.
 
     Output your response in JSON format.
     The JSON must contain:

@@ -1,0 +1,6 @@
+test_data/
+*.jsonl
+*.json
+*.temp.pdf
+*.pyc
+__pycache__/
