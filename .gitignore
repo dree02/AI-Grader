@@ -4,3 +4,4 @@ test_data/
 *.temp.pdf
 *.pyc
 __pycache__/
+api_keys.txt
